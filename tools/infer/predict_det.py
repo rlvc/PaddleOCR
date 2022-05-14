@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from glob import escape
 import os
 import sys
 
@@ -97,6 +98,10 @@ class TextDetector(object):
         self.postprocess_op = build_post_process(postprocess_params)
         self.predictor, self.input_tensor, self.output_tensors, self.config = utility.create_predictor(
             args, 'det', logger)
+        self.graph_name = self.predictor.get_graph_names()[0]
+        self.input_name = self.predictor.get_input_names(self.graph_name)[0]
+        self.input_shape = self.predictor.get_input_shape(self.graph_name, self.input_name)
+        self.output_names = self.predictor.get_output_names(self.graph_name)
 
         if args.benchmark:
             import auto_log
@@ -191,12 +196,16 @@ class TextDetector(object):
         if self.args.benchmark:
             self.autolog.times.stamp()
 
-        self.input_tensor.copy_from_cpu(img)
-        self.predictor.run()
+        # self.input_tensor.copy_from_cpu(img)
+        # in 
+        output_s = self.predictor.process(self.graph_name, {self.input_name:img})
         outputs = []
-        for output_tensor in self.output_tensors:
-            output = output_tensor.copy_to_cpu()
-            outputs.append(output)
+        outputs.append(output_s[self.output_names[0]])
+        # outputs.append(output_s[self.output_names[1]])
+        # for output_tensor in self.output_tensors:
+        #     output = output_tensor.copy_to_cpu()
+        #     outputs.append(output)
+        # out
         if self.args.benchmark:
             self.autolog.times.stamp()
 
@@ -252,8 +261,11 @@ if __name__ == "__main__":
             logger.info("error in loading image:{}".format(image_file))
             continue
         st = time.time()
-        dt_boxes, _ = text_detector(img)
+        for ii in range(100):
+            # print(ii)
+            dt_boxes, _ = text_detector(img)
         elapse = time.time() - st
+        print("++++++++++++++++++++++++++++++++++++++++",elapse)
         if count > 0:
             total_time += elapse
         count += 1

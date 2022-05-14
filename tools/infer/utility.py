@@ -24,6 +24,7 @@ import paddle
 from paddle import inference
 import time
 from ppocr.utils.logging import get_logger
+from sophon import sail
 
 
 def str2bool(v):
@@ -33,7 +34,7 @@ def str2bool(v):
 def init_args():
     parser = argparse.ArgumentParser()
     # params for prediction engine
-    parser.add_argument("--use_gpu", type=str2bool, default=True)
+    parser.add_argument("--use_gpu", type=str2bool, default=False)
     parser.add_argument("--ir_optim", type=str2bool, default=True)
     parser.add_argument("--use_tensorrt", type=str2bool, default=False)
     parser.add_argument("--min_subgraph_size", type=int, default=15)
@@ -44,7 +45,8 @@ def init_args():
     parser.add_argument("--image_dir", type=str)
     parser.add_argument("--det_algorithm", type=str, default='DB')
     parser.add_argument("--det_model_dir", type=str)
-    parser.add_argument("--det_limit_side_len", type=float, default=960)
+    parser.add_argument("--sophgo_det_model_dir", type=str)
+    parser.add_argument("--det_limit_side_len", type=float, default=1920)
     parser.add_argument("--det_limit_type", type=str, default='max')
 
     # DB parmas
@@ -67,6 +69,7 @@ def init_args():
     # params for text recognizer
     parser.add_argument("--rec_algorithm", type=str, default='CRNN')
     parser.add_argument("--rec_model_dir", type=str)
+	parser.add_argument("--sophgo_rec_model_dir", type=str)
     parser.add_argument("--rec_image_shape", type=str, default="3, 32, 320")
     parser.add_argument("--rec_char_type", type=str, default='ch')
     parser.add_argument("--rec_batch_num", type=int, default=6)
@@ -97,6 +100,7 @@ def init_args():
     # params for text classifier
     parser.add_argument("--use_angle_cls", type=str2bool, default=False)
     parser.add_argument("--cls_model_dir", type=str)
+	parser.add_argument("--sophgo_cls_model_dir", type=str)
     parser.add_argument("--cls_image_shape", type=str, default="3, 48, 192")
     parser.add_argument("--label_list", type=list, default=['0', '180'])
     parser.add_argument("--cls_batch_num", type=int, default=6)
@@ -105,7 +109,7 @@ def init_args():
     parser.add_argument("--enable_mkldnn", type=str2bool, default=False)
     parser.add_argument("--cpu_threads", type=int, default=10)
     parser.add_argument("--use_pdserving", type=str2bool, default=False)
-    parser.add_argument("--warmup", type=str2bool, default=True)
+    parser.add_argument("--warmup", type=str2bool, default=False)
 
     # multi-process
     parser.add_argument("--use_mp", type=str2bool, default=False)
