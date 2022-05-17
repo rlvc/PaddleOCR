@@ -42,11 +42,12 @@ def init_args():
     parser.add_argument("--gpu_mem", type=int, default=500)
 
     # params for text detector
-    parser.add_argument("--image_dir", type=str)
+    parser.add_argument("--image_dir", type=str, default='D:\\workspace\\PaddleOCR-release-2.3\\doc\\test\\res.jpg')#\\QSS05.4-5.png
+    # parser.add_argument("--image_dir", type=str, default='D:\\workspace\\PaddleOCR-release-2.3\\doc\\imgs_words_en\\word_10.png')
     parser.add_argument("--det_algorithm", type=str, default='DB')
-    parser.add_argument("--det_model_dir", type=str)
-    parser.add_argument("--sophgo_det_model_dir", type=str)
-    parser.add_argument("--det_limit_side_len", type=float, default=1920)
+    parser.add_argument("--det_model_dir", type=str, default='D:\\workspace\\PaddleOCR-release-2.3\\pmodel\\ch_ppocr_server_v2.0_det_infer\\')
+    parser.add_argument("--sophgo_det_model_dir", type=str, default='D:\\workspace\\PaddleOCR-release-2.3\\bmodel\\det_model\\compilation.bmodel')
+    parser.add_argument("--det_limit_side_len", type=float, default=960)
     parser.add_argument("--det_limit_type", type=str, default='max')
 
     # DB parmas
@@ -68,11 +69,11 @@ def init_args():
 
     # params for text recognizer
     parser.add_argument("--rec_algorithm", type=str, default='CRNN')
-    parser.add_argument("--rec_model_dir", type=str)
-    parser.add_argument("--sophgo_rec_model_dir", type=str)
+    parser.add_argument("--rec_model_dir", type=str,default='D:\\workspace\\PaddleOCR-release-2.3\\pmodel\\ch_ppocr_server_v2.0_rec_infer\\')
+    parser.add_argument("--sophgo_rec_model_dir", type=str, default='D:\\workspace\\PaddleOCR-release-2.3\\bmodel\\ch_ppocr_server_v2.0_rec_infer\\compilation.bmodel')
     parser.add_argument("--rec_image_shape", type=str, default="3, 32, 320")
     parser.add_argument("--rec_char_type", type=str, default='ch')
-    parser.add_argument("--rec_batch_num", type=int, default=6)
+    parser.add_argument("--rec_batch_num", type=int, default=1)
     parser.add_argument("--max_text_length", type=int, default=25)
     parser.add_argument(
         "--rec_char_dict_path",
@@ -98,12 +99,12 @@ def init_args():
     parser.add_argument("--e2e_pgnet_mode", type=str, default='fast')
 
     # params for text classifier
-    parser.add_argument("--use_angle_cls", type=str2bool, default=False)
-    parser.add_argument("--cls_model_dir", type=str)
-    parser.add_argument("--sophgo_cls_model_dir", type=str)
+    parser.add_argument("--use_angle_cls", type=str2bool, default=True)
+    parser.add_argument("--cls_model_dir", type=str,default='D:\\workspace\\PaddleOCR-release-2.3\\pmodel\\ch_ppocr_mobile_v2.0_cls_infer\\')
+    parser.add_argument("--sophgo_cls_model_dir", type=str,default='D:\\workspace\\PaddleOCR-release-2.3\\bmodel\\cls_model\\compilation.bmodel')
     parser.add_argument("--cls_image_shape", type=str, default="3, 48, 192")
     parser.add_argument("--label_list", type=list, default=['0', '180'])
-    parser.add_argument("--cls_batch_num", type=int, default=6)
+    parser.add_argument("--cls_batch_num", type=int, default=1)
     parser.add_argument("--cls_thresh", type=float, default=0.9)
 
     parser.add_argument("--enable_mkldnn", type=str2bool, default=False)
@@ -131,10 +132,13 @@ def parse_args():
 def create_predictor(args, mode, logger):
     if mode == "det":
         model_dir = args.det_model_dir
+        sophgo_model_dir = args.sophgo_det_model_dir
     elif mode == 'cls':
         model_dir = args.cls_model_dir
+        sophgo_model_dir = args.sophgo_cls_model_dir
     elif mode == 'rec':
         model_dir = args.rec_model_dir
+        sophgo_model_dir = args.sophgo_rec_model_dir
     elif mode == 'table':
         model_dir = args.table_model_dir
     else:
@@ -279,6 +283,7 @@ def create_predictor(args, mode, logger):
 
     # create predictor
     predictor = inference.create_predictor(config)
+    so_predictor = sail.Engine(sophgo_model_dir, 0, sail.SYSIO)
     input_names = predictor.get_input_names()
     for name in input_names:
         input_tensor = predictor.get_input_handle(name)
@@ -287,7 +292,7 @@ def create_predictor(args, mode, logger):
     for output_name in output_names:
         output_tensor = predictor.get_output_handle(output_name)
         output_tensors.append(output_tensor)
-    return predictor, input_tensor, output_tensors, config
+    return so_predictor, input_tensor, output_tensors, config
 
 
 def get_infer_gpuid():

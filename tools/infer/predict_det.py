@@ -178,6 +178,9 @@ class TextDetector(object):
 
     def __call__(self, img):
         ori_im = img.copy()
+        # img = np.transpose(img, (1,0,2))
+        print("================================================")
+        print("img.shape = ", img.shape)
         data = {'image': img}
 
         st = time.time()
@@ -192,6 +195,8 @@ class TextDetector(object):
         img = np.expand_dims(img, axis=0)
         shape_list = np.expand_dims(shape_list, axis=0)
         img = img.copy()
+        print("================================================")
+        print("img.shape = ", img.shape)
 
         if self.args.benchmark:
             self.autolog.times.stamp()
@@ -241,6 +246,7 @@ if __name__ == "__main__":
     args = utility.parse_args()
     image_file_list = get_image_file_list(args.image_dir)
     text_detector = TextDetector(args)
+    # 转换
     count = 0
     total_time = 0
     draw_img_save = "./inference_results"
@@ -257,13 +263,14 @@ if __name__ == "__main__":
         img, flag = check_and_read_gif(image_file)
         if not flag:
             img = cv2.imread(image_file)
+            # img = np.transpose(img, (1,0,2))
         if img is None:
             logger.info("error in loading image:{}".format(image_file))
             continue
         st = time.time()
-        for ii in range(100):
+        # for ii in range(100):
             # print(ii)
-            dt_boxes, _ = text_detector(img)
+        dt_boxes, _ = text_detector(img)
         elapse = time.time() - st
         print("++++++++++++++++++++++++++++++++++++++++",elapse)
         if count > 0:

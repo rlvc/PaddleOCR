@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from multiprocessing.context import set_spawning_popen
 import os
 import sys
 import threading
@@ -73,6 +74,10 @@ class TextRecognizer(object):
         self.postprocess_op = build_post_process(postprocess_params)
         self.predictor, self.input_tensor, self.output_tensors, self.config = \
             utility.create_predictor(args, 'rec', logger)
+        self.graph_name = self.predictor.get_graph_names()[0]
+        self.input_name = self.predictor.get_input_names(self.graph_name)[0]
+        self.input_shape = self.predictor.get_input_shape(self.graph_name, self.input_name)
+        self.output_names = self.predictor.get_output_names(self.graph_name)
         self.benchmark = args.benchmark
         if args.benchmark:
             import auto_log
@@ -270,12 +275,15 @@ class TextRecognizer(object):
                     self.autolog.times.stamp()
                 preds = {"predict": outputs[2]}
             else:
-                self.input_tensor.copy_from_cpu(norm_img_batch)
-                self.predictor.run()
+                # self.input_tensor.copy_from_cpu(norm_img_batch)
+                # self.predictor.run()
+                output_s = self.predictor.process(self.graph_name, {self.input_name:norm_img_batch})
+                
                 outputs = []
-                for output_tensor in self.output_tensors:
-                    output = output_tensor.copy_to_cpu()
-                    outputs.append(output)
+                outputs.append(output_s[self.output_names[0]])
+                # for output_tensor in self.output_tensors:
+                #     output = output_tensor.copy_to_cpu()
+                #     outputs.append(output)
                 if self.benchmark:
                     self.autolog.times.stamp()
                 if len(outputs) != 1:
@@ -298,10 +306,10 @@ def main(args):
     img_list = []
 
     # warmup 2 times
-    if args.warmup:
-        img = np.random.uniform(0, 255, [32, 320, 3]).astype(np.uint8)
-        for i in range(2):
-            res = text_recognizer([img] * int(args.rec_batch_num))
+    # if args.warmup:
+    #     img = np.random.uniform(0, 255, [32, 320, 3]).astype(np.uint8)
+    #     for i in range(2):
+    #         res = text_recognizer([img] * int(args.rec_batch_num))
 
     for image_file in image_file_list:
         img, flag = check_and_read_gif(image_file)
@@ -314,6 +322,7 @@ def main(args):
         img_list.append(img)
     try:
         rec_res, _ = text_recognizer(img_list)
+        print(rec_res)
 
     except Exception as E:
         logger.info(traceback.format_exc())
